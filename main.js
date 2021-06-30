@@ -11,9 +11,15 @@ const gameBtn = document.querySelector(".game__button");
 const gameTimer = document.querySelector(".game__timer");
 const gameScore = document.querySelector(".game__score");
 
+const popUp = document.querySelector(".pop-up");
+const popUpText = document.querySelector(".pop-up__message");
+const popUpRefresh = document.querySelector(".pop-up__refresh");
+
 let started = false;
 let score = 0;
 let timer = undefined;
+
+field.addEventListener("click", onFieldClick);
 
 gameBtn.addEventListener("click", () => {
   if (started) {
@@ -21,17 +27,33 @@ gameBtn.addEventListener("click", () => {
   } else {
     startGame();
   }
-  started = !started;
+});
+
+popUpRefresh.addEventListener("click", () => {
+  startGame();
+  hidePopUp();
 });
 
 function startGame() {
+  started = true;
   initGame();
   showStopButton();
   showTimerAndScore();
   startGameTimer();
 }
 
-function stopGame() {}
+function stopGame() {
+  started = false;
+  stopGameTimer();
+  hideGameButton();
+  showPopUpWithText("REPLAY?");
+}
+
+function finishGame(win) {
+  started = false;
+  hideGameButton();
+  showPopUpWithText(win ? "YOU WON!" : "YOU LOST");
+}
 
 function startGameTimer() {
   let remainingTimeSec = GAME_DURATION;
@@ -39,10 +61,15 @@ function startGameTimer() {
   timer = setInterval(() => {
     if (remainingTimeSec <= 0) {
       clearInterval(timer);
+      finishGame(CARROT_COUNT === score);
       return;
     }
     updateTimerText(--remainingTimeSec);
   }, 1000);
+}
+
+function stopGameTimer() {
+  clearInterval(timer);
 }
 
 function updateTimerText(time) {
@@ -52,14 +79,27 @@ function updateTimerText(time) {
 }
 
 function showStopButton() {
-  const icon = gameBtn.querySelector(".fa-play");
+  const icon = gameBtn.querySelector(".fas");
   icon.classList.add("fa-stop");
   icon.classList.remove("fa-play");
+}
+
+function hideGameButton() {
+  gameBtn.style.visibility = "hidden";
 }
 
 function showTimerAndScore() {
   gameTimer.style.visibility = "visible";
   gameScore.style.visibility = "visible";
+}
+
+function showPopUpWithText(text) {
+  popUpText.innerText = text;
+  popUp.classList.remove("pop-up--hide");
+}
+
+function hidePopUp() {
+  popUp.classList.add("pop-up--hide");
 }
 
 function initGame() {
@@ -68,6 +108,30 @@ function initGame() {
   // 벌레와 당근을 생성한뒤 field에 추가해준다.
   addItem("carrot", CARROT_COUNT, "img/carrot.png");
   addItem("bug", BUG_COUNT, "img/bug.png");
+}
+
+function onFieldClick(event) {
+  if (!started) {
+    return;
+  }
+  const target = event.target;
+  if (target.matches(".carrot")) {
+    //당근!!
+    target.remove();
+    score++;
+    updateScoreBoard();
+    if (score === CARROT_COUNT) {
+      finishGame(true);
+    }
+  } else if (target.matches(".bug")) {
+    //벌레
+    stopGameTimer();
+    finishGame(false);
+  }
+}
+
+function updateScoreBoard() {
+  gameScore.innerText = CARROT_COUNT - score;
 }
 
 function addItem(className, count, imgPath) {
